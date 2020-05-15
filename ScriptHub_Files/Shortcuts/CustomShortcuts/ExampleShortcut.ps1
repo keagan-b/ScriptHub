@@ -1,0 +1,1 @@
+Start-Process chrome https://github.com/HelpMeGame/ScriptHub/releases
