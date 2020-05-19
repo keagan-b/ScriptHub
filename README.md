@@ -27,7 +27,7 @@ Scripthub will soon be introducing the following features:
 
 ## The ScriptHub Website
 
-The official ScriptHub website can be found [here](https://sites.google.com/students.ocps.net/ScriptHub)
+The official ScriptHub website can be found [here](https://scripthub.helpmegame.com)
 
 ## Disclaimer
 
