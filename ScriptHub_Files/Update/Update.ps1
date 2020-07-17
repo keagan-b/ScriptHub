@@ -9,63 +9,98 @@
 #                     |_|                            #
 #----------------------------------------------------#
 
+#Get the script directory
+$CurrentDir = $PSScriptRoot
 
-function Get-ScriptDirectory {
-    Split-Path -parent $PSCommandPath
+#Set the directory
+Set-Location $CurrentDir
+
+#Go up in directory
+$MainDir = Split-Path -Path $CurrentDir -Parent
+
+#Set verison file directory
+$VersionDir = "$($MainDir)\version"
+
+#Check if version file exists
+if (Test-Path $VersionDir -PathType leaf)
+{
+$Version = Get-Content -Path $VersionDir
+} else
+{
+$Version = "Unkown"
 }
-$verison = 1.9
-#Get the script location
-$localLocation = Get-ScriptDirectory
 
-#Set the location
-Set-Location $localLocation
-$CurrentLocation = G
+function CheckForUpdate {
+    cls
 
-function update {
-    Set-Location $localLocation
-    # --- Set the uri for the latest release
+    #Sets script dir
+    Set-Location $CurrentDir
+
+    #Set the uri for the latest release
     $URI = "https://api.github.com/repos/HelpMeGame/ScriptHub/releases/latest"
 
+    #Gets latest release tag
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    $tag = (Invoke-WebRequest -Uri $URI -UseBasicParsing | ConvertFrom-Json)[0].tag_name
-
-    $tag2 = $tag
-    $versionTag = $version -0.1
-
-    if ($tag2 -ne 'v'+$versionTag) {
-        # --- Query the API to get the url of the zip
-        $Response = Invoke-RestMethod -Method Get -Uri $URI
-        $ZipUrl = $Response.zipball_url
-
-         # --- Download the file to the current location
-        $OutputPath = "$((Get-Location).Path)\$($Response.name.Replace(" ","_")).zip"
-        Invoke-RestMethod -Method Get -Uri $ZipUrl -OutFile $OutputPath
-
-
-
-        expand-archive -Path $outputpath
-        Remove-Item -path $OutputPath
-
-
-        $local = get-location
-
-        $filename = Get-ChildItem -Path $local'\ScriptHub_'$tag
-
-        Copy-Item -Recurse -force "$local\ScriptHub_$tag\$filename\*" -Destination $local
-        Remove-Item $local'\ScriptHub_'$tag -Force -Recurse
-
-        } 
-        else 
-        {
-        write-host 'You are running the latest version!'
+    $ReleaseTag = (Invoke-WebRequest -Uri $URI -UseBasicParsing | ConvertFrom-Json)[0].tag_name
+    
+    if ($ReleaseTag -gt $Version) {
+        Write-Host "New version available! Would you like to update?"
+        $YN = Read-Host “[Y] Yes [N] No”
+        if ($YN -eq 'y' -or $YN -eq 'Y') {
+            Update
+        } elseif ($YN -eq 'n' -or $YN -eq 'N') {
+            & .\Update.ps1
+        } else {
+            & .\Update.ps1
         }
+    } else
+    {
+        Write-Host "Latest Update [$($ReleaseTag)] already installed!"
+        read-host “Press ENTER to continue...”
+        & .\Update.ps1
+    }
+}
 
-    Set-Content -Value $tag2 -Path .\NewUpdate.txt
+function Update {
+    cls
+    write-host "Downloading..."
+    #Query the API to get the url of the zip
+    $Response = Invoke-RestMethod -Method Get -Uri $URI
+    $ZipUrl = $Response.zipball_url
 
-    & .\CopyOverUpdate.ps1
+    #Download the file to the current location
+    $OutputPath = "$((Get-Location).Path)\$($Response.name.Replace(" ","_")).zip"
+    invoke-RestMethod -Method Get -Uri $ZipUrl -OutFile $OutputPath
+
+    $temp = "C:\users\$env:username\AppData\local\temp"
+
+    #Copy update to temp
+    Copy-Item -path $CurrentDir\ScriptHub_$ReleaseTag.zip -destination $temp
+    Remove-Item -path $CurrentDir\ScriptHub_$ReleaseTag.zip
+
+    
+    cls 
+    write-host "Extracting..."
+
+    #extract
+    expand-archive -Path $temp\ScriptHub_$ReleaseTag.zip -destination $temp\ScriptHub_Temp
+    Remove-Item -path $temp\ScriptHub_$ReleaseTag.zip
+
+    cls
+    write-host "Installing..."
+
+    $filename = Get-ChildItem -Path $temp\ScriptHub_Temp\
+    $StartDir = Split-Path -Path $MainDir -Parent
+
+    #copy over
+    Remove-Item -Path $StartDir/* -Force
+    Copy-Item -Recurse -force "$temp\ScriptHub_Temp\$filename\*" -Destination $CurrentDir
+    Remove-Item -path $temp\ScriptHub_Temp
+    
 }
 
 cls
+
 Write-Host "
 #     #                                   
 #     # #####  #####    ##   ##### ###### 
@@ -74,34 +109,36 @@ Write-Host "
 #     # #####  #    # ######   #   #      
 #     # #      #    # #    #   #   #      
  #####  #      #####  #    #   #   ###### 
-                                          
-                                          "
-Write-Host "Developed by SCR33M, Improved By HelpMeGame" -fore Green
-echo ''
-Write-Host 'Current Version:' $verison
+"
+#Has to wait or color won't be green - No idea why !!Only in ISE!!
+Start-Sleep -mill 10
+
+Write-Host "Developed by SCR33M, Improved By HelpMeGame " -fore Green
+Write-Host "Version: $($version)" -fore Green
+
 echo '
 Type the number of the action you would like to do.
 1) Check for and install updates
 2) Revert Versions -- Currently Under Construction
 3) Return To ScriptHub
 '
-$goto = Read-Host
 
-if ($goto -eq '1')
+#read numbers typed
+$Select = Read-Host
+
+#Elif hell
+if ($Select -eq '1')
     {
-        update
-    }
-    elseif ($goto -eq '3') 
+        CheckForUpdate
+    } elseif ($Select -eq '2') 
         {
             & .\Update.ps1
-        }
-        elseif ($goto -eq '2')
-        {
-            &..\ScriptHub.ps1
-        }
-            elseif ($goto -ne 1 -and 2 -and 3)
+        } elseif ($Select -eq '3')
             {
+            &..\ScriptHub.ps1
+            } elseif ($Select -ne 1 -and 2 -and 3)
+                {
                 & .\Update.ps1
-            }
+                }
 
 
